@@ -7,15 +7,18 @@ import net.dblsaiko.rswires.common.block.BundledCableBlock
 import net.dblsaiko.rswires.common.block.InsulatedWireBlock
 import net.dblsaiko.rswires.common.block.RedAlloyWireBlock
 import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
-import net.minecraft.block.Material
+import net.minecraft.block.MapColor
+import net.minecraft.block.enums.Instrument
 import net.minecraft.util.DyeColor
 
 class Blocks {
     private val reg = BlockRegistry(MOD_ID)
 
-    private val wireSettings = FabricBlockSettings.of(Material.STONE)
+    private val wireSettings = FabricBlockSettings.create()
+        .mapColor(MapColor.RED)
         .noCollision()
         .strength(0.05f, 0.05f)
+        .instrument(Instrument.BASEDRUM)
 
     val redAlloyWireObject = this.reg.create("red_alloy_wire", RedAlloyWireBlock(this.wireSettings))
     val insulatedWireObjects = DyeColor.values().associate { it to this.reg.create("${it.getName()}_insulated_wire", InsulatedWireBlock(this.wireSettings, it)) }

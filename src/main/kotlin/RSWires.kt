@@ -19,13 +19,14 @@ object RSWires : ModInitializer {
 
     val blockEntityTypes = BlockEntityTypes()
     val blocks = Blocks()
-    val itemGroups = ItemGroups()
-    val items = Items(blocks, itemGroups)
+    val items = Items(blocks)
+    val itemGroups = ItemGroups(blocks, items)
 
     override fun onInitialize() {
         this.blockEntityTypes.register()
         this.blocks.register()
         this.items.register()
+        this.itemGroups.register()
 
         ServerTickEvents.END_WORLD_TICK.register(ServerTickEvents.EndWorldTick {
             if (it is ServerWorld) {

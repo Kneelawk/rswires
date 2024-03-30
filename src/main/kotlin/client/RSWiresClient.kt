@@ -9,9 +9,9 @@ import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.model.ModelLoadingRegistry
 import net.fabricmc.fabric.api.client.model.ModelVariantProvider
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess
+import net.minecraft.registry.Registries
 import net.minecraft.util.DyeColor
 import net.minecraft.util.Identifier
-import net.minecraft.util.registry.Registry
 import java.util.concurrent.ConcurrentHashMap
 
 object RSWiresClient : ClientModInitializer {
@@ -35,20 +35,20 @@ object RSWiresClient : ClientModInitializer {
                 ModelVariantProvider { modelId, _ ->
                     val props = modelId.variant.split(",")
                     when (val id = Identifier(modelId.namespace, modelId.path)) {
-                        Registry.BLOCK.getId(RSWires.blocks.redAlloyWire) -> {
+                        Registries.BLOCK.getId(RSWires.blocks.redAlloyWire) -> {
                             if ("powered=false" in props) redAlloyOffModel
                             else redAlloyOnModel
                         }
-                        in RSWires.blocks.insulatedWires.values.asSequence().map(Registry.BLOCK::getId) -> {
-                            val (color, _) = RSWires.blocks.insulatedWires.entries.first { (_, block) -> id == Registry.BLOCK.getId(block) }
+                        in RSWires.blocks.insulatedWires.values.asSequence().map(Registries.BLOCK::getId) -> {
+                            val (color, _) = RSWires.blocks.insulatedWires.entries.first { (_, block) -> id == Registries.BLOCK.getId(block) }
                             if ("powered=false" in props) insulatedWireOffModel.getValue(color)
                             else insulatedWireOnModel.getValue(color)
                         }
-                        Registry.BLOCK.getId(RSWires.blocks.uncoloredBundledCable) -> {
+                        Registries.BLOCK.getId(RSWires.blocks.uncoloredBundledCable) -> {
                             plainBundledCableModel
                         }
-                        in RSWires.blocks.coloredBundledCables.values.asSequence().map(Registry.BLOCK::getId) -> {
-                            val (color, _) = RSWires.blocks.coloredBundledCables.entries.first { (_, block) -> id == Registry.BLOCK.getId(block) }
+                        in RSWires.blocks.coloredBundledCables.values.asSequence().map(Registries.BLOCK::getId) -> {
+                            val (color, _) = RSWires.blocks.coloredBundledCables.entries.first { (_, block) -> id == Registries.BLOCK.getId(block) }
                             colorBundledCableModel.getValue(color)
                         }
                         else -> null

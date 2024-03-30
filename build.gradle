@@ -1,30 +1,15 @@
-buildscript {
-    repositories {
-        jcenter()
-        maven {
-            name = 'Fabric'
-            url = 'https://maven.fabricmc.net/'
-        }
-        gradlePluginPortal()
-    }
-    dependencies {
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.10'
-        classpath 'gradle.plugin.org.jetbrains.gradle.plugin.idea-ext:gradle-idea-ext:0.9'
-        classpath 'fabric-loom:fabric-loom.gradle.plugin:0.10-SNAPSHOT'
-    }
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'org.jetbrains.gradle.plugin.idea-ext'
+    id 'fabric-loom'
+    id 'maven-publish'
 }
 
-apply plugin: 'org.jetbrains.kotlin.jvm'
-apply plugin: 'org.jetbrains.gradle.plugin.idea-ext'
-apply plugin: 'fabric-loom'
-apply plugin: 'maven-publish'
-
-sourceCompatibility = JavaVersion.VERSION_16
-targetCompatibility = JavaVersion.VERSION_16
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
-    kotlinOptions.jvmTarget = '16'
-    kotlinOptions.freeCompilerArgs += '-Xuse-experimental=kotlin.ExperimentalUnsignedTypes'
+    kotlinOptions.jvmTarget = '17'
     kotlinOptions.freeCompilerArgs += '-Xjvm-default=all'
 }
 
@@ -36,6 +21,7 @@ apply from: 'https://dblsaiko.net/pub/gradle/autoversion.gradle'
 repositories {
     maven { url 'https://maven.dblsaiko.net' }
     // maven { url 'https://maven.terraformersmc.com/releases/' }
+    mavenLocal()
 }
 
 dependencies {
@@ -61,20 +47,20 @@ dependencies {
     optionalProject ':hctm-base', group: 'net.dblsaiko', name: 'hctm-base', version: hctm_base_version
     include group: 'net.dblsaiko', name: 'hctm-base', version: hctm_base_version
 
-    modRuntimeOnly(group: 'net.dblsaiko.qcommon.cfg', name: 'cfg', version: cfg_version) {
-        exclude group: 'net.fabricmc.fabric-api'
-        exclude module: 'cfg-keys'
-    }
-
-    modImplementation(group: 'net.dblsaiko.qcommon.cfg', name: 'cfg-core', version: cfg_core_version) {
-        exclude group: 'net.fabricmc.fabric-api'
-    }
-
-    modImplementation group: 'net.dblsaiko', name: 'libaddict', version: libaddict_version
-
-    modImplementation group: "net.dblsaiko.qcommon.croco", name: "croco", version: croco_version
-
-    modRuntimeOnly group: 'net.dblsaiko', name: 'winwonders', version: '0.1.2-4'
+//    modRuntimeOnly(group: 'net.dblsaiko.qcommon.cfg', name: 'cfg', version: cfg_version) {
+//        exclude group: 'net.fabricmc.fabric-api'
+//        exclude module: 'cfg-keys'
+//    }
+//
+//    modImplementation(group: 'net.dblsaiko.qcommon.cfg', name: 'cfg-core', version: cfg_core_version) {
+//        exclude group: 'net.fabricmc.fabric-api'
+//    }
+//
+//    modImplementation group: 'net.dblsaiko', name: 'libaddict', version: libaddict_version
+//
+//    modImplementation group: "net.dblsaiko.qcommon.croco", name: "croco", version: croco_version
+//
+//    modRuntimeOnly group: 'net.dblsaiko', name: 'winwonders', version: '0.1.2-4'
     // modRuntimeOnly(group: 'com.terraformersmc', name: 'modmenu', version: '2.0.0-beta.7') {
     //     exclude module: 'fabric-api'
     // }
@@ -95,12 +81,8 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
-// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-// if it is present.
-// If you remove this task, sources will not be generated.
-task sourcesJar(type: Jar, dependsOn: classes) {
-    archiveClassifier = 'sources'
-    from sourceSets.main.allSource
+java {
+    withSourcesJar()
 }
 
 jar {
@@ -112,12 +94,7 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             // add all the jars that should be included when publishing to maven
-            artifact(remapJar) {
-                builtBy remapJar
-            }
-            artifact(sourcesJar) {
-                builtBy remapSourcesJar
-            }
+            from components.java
         }
     }
 
