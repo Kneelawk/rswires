@@ -1,5 +1,14 @@
 package net.dblsaiko.rswires.common.block
 
+import com.kneelawk.graphlib.api.graph.BlockGraph
+import com.kneelawk.graphlib.api.graph.NodeHolder
+import com.kneelawk.graphlib.api.graph.user.BlockNode
+import com.kneelawk.graphlib.api.graph.user.BlockNodeType
+import com.kneelawk.graphlib.api.graph.user.SidedBlockNode
+import com.kneelawk.graphlib.api.util.HalfLink
+import com.kneelawk.graphlib.api.wire.SidedWireBlockNode
+import com.kneelawk.graphlib.api.wire.WireConnectionDiscoverers
+import com.kneelawk.graphlib.api.wire.WireConnectionFilter
 import net.dblsaiko.hctm.block.BlockBundledCableIo
 import net.dblsaiko.hctm.common.block.BaseWireBlock
 import net.dblsaiko.hctm.common.block.BaseWireBlockEntity
@@ -7,21 +16,17 @@ import net.dblsaiko.hctm.common.block.BaseWireProperties
 import net.dblsaiko.hctm.common.block.ConnectionType
 import net.dblsaiko.hctm.common.block.SingleBaseWireBlock
 import net.dblsaiko.hctm.common.block.WireUtils
-import net.dblsaiko.hctm.common.wire.ConnectionDiscoverers
-import net.dblsaiko.hctm.common.wire.ConnectionFilter
 import net.dblsaiko.hctm.common.wire.NetNode
-import net.dblsaiko.hctm.common.wire.Network
-import net.dblsaiko.hctm.common.wire.NodeView
-import net.dblsaiko.hctm.common.wire.PartExt
-import net.dblsaiko.hctm.common.wire.WirePartExtType
-import net.dblsaiko.hctm.common.wire.find
-import net.dblsaiko.hctm.common.wire.getWireNetworkState
+import net.dblsaiko.hctm.common.wire.SimpleBaseWireDecoder
+import net.dblsaiko.hctm.common.wire.WIRE_NETWORK
 import net.dblsaiko.rswires.RSWires
+import net.dblsaiko.rswires.id
 import net.minecraft.block.AbstractBlock
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.nbt.NbtByte
+import net.minecraft.nbt.NbtCompound
 import net.minecraft.nbt.NbtElement
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.state.StateManager.Builder
@@ -32,9 +37,8 @@ import net.minecraft.util.math.Direction
 import net.minecraft.world.BlockView
 import net.minecraft.world.World
 import net.minecraft.world.dimension.DimensionType
-import java.util.*
-import kotlin.experimental.and
 import kotlin.experimental.or
+import kotlin.streams.asSequence
 
 abstract class BaseRedstoneWireBlock(settings: AbstractBlock.Settings, height: Float) : SingleBaseWireBlock(settings, height) {
 
@@ -142,15 +146,7 @@ class InsulatedWireBlock(settings: AbstractBlock.Settings, val color: DyeColor) 
 
 class BundledCableBlock(settings: AbstractBlock.Settings, val color: DyeColor?) : BaseWireBlock(settings, 4 / 16f) {
 
-    override fun createExtFromTag(tag: NbtElement): PartExt? {
-        val data = (tag as? NbtByte)?.byteValue() ?: return null
-        val inner = DyeColor.byId(data.toInt() shr 4 and 15)
-        val dir = data and 15
-        return if (dir in 0 until 6) BundledCablePartExt(Direction.byId(dir.toInt()), color, inner)
-        else null
-    }
-
-    override fun createPartExtsFromSide(side: Direction): Set<PartExt> {
+    override fun createPartExtsFromSide(side: Direction): Set<BlockNode> {
         return DyeColor.values().map { BundledCablePartExt(side, color, it) }.toSet()
     }
 
@@ -176,19 +172,27 @@ class BundledCableBlock(settings: AbstractBlock.Settings, val color: DyeColor?) 
 
 }
 
-data class RedAlloyWirePartExt(override val side: Direction) : PartExt, WirePartExtType, PartRedstoneCarrier {
-    override val type = RedstoneWireType.RedAlloy
+data class RedAlloyWirePartExt(private val side: Direction) : SidedBlockNode, SidedWireBlockNode, PartRedstoneCarrier {
+    companion object {
+        val TYPE = BlockNodeType.of(id("red_alloy_wire"), SimpleBaseWireDecoder(::RedAlloyWirePartExt))
+    }
+    
+    override val wireType = RedstoneWireType.RedAlloy
+
+    override fun getType() = TYPE
+    
+    override fun getSide() = side
 
     private fun isCorrectBlock(state: BlockState) = state.block == RSWires.blocks.redAlloyWire
 
     override fun getState(world: World, self: NetNode): Boolean {
-        val pos = self.data.pos
+        val pos = self.blockPos
         val state = world.getBlockState(pos)
         return isCorrectBlock(state) && state[WireProperties.POWERED]
     }
 
     override fun setState(world: World, self: NetNode, state: Boolean) {
-        val pos = self.data.pos
+        val pos = self.blockPos
         var blockState = world.getBlockState(pos)
 
         if (!isCorrectBlock(blockState)) return
@@ -206,17 +210,24 @@ data class RedAlloyWirePartExt(override val side: Direction) : PartExt, WirePart
     }
 
     override fun getInput(world: World, self: NetNode): Boolean {
-        val pos = self.data.pos
+        val pos = self.blockPos
         return RedstoneWireUtils.isReceivingPower(world.getBlockState(pos), world, pos, true)
     }
 
-    override fun tryConnect(self: NetNode, world: ServerWorld, pos: BlockPos, nv: NodeView): Set<NetNode> {
-        return find(ConnectionDiscoverers.WIRE, RedstoneCarrierFilter, self, world, pos, nv)
+    override fun findConnections(self: NodeHolder<BlockNode>): MutableCollection<HalfLink> {
+        return WireConnectionDiscoverers.sidedWireFindConnections(this, self, RedstoneCarrierFilter)
     }
 
-    override fun onChanged(self: NetNode, world: ServerWorld, pos: BlockPos) {
-        RedstoneWireUtils.scheduleUpdate(world, pos)
-        WireUtils.updateClient(world, pos)
+    override fun canConnect(self: NodeHolder<BlockNode>, other: HalfLink): Boolean {
+        return WireConnectionDiscoverers.sidedWireCanConnect(this, self, other, RedstoneCarrierFilter)
+    }
+
+    override fun onConnectionsChanged(self: NodeHolder<BlockNode>) {
+        val world = self.blockWorld
+        if (world is ServerWorld) {
+            RedstoneWireUtils.scheduleUpdate(world, self.blockPos)
+            WireUtils.updateClient(world, self.blockPos)
+        }
     }
 
     override fun toTag(): NbtElement {
@@ -224,26 +235,38 @@ data class RedAlloyWirePartExt(override val side: Direction) : PartExt, WirePart
     }
 }
 
-data class InsulatedWirePartExt(override val side: Direction, val color: DyeColor) : PartExt, WirePartExtType, PartRedstoneCarrier {
-    override val type = RedstoneWireType.Colored(color)
+data class InsulatedWirePartExt(private val side: Direction, val color: DyeColor) : SidedBlockNode, SidedWireBlockNode, PartRedstoneCarrier {
+    companion object {
+        val TYPE = BlockNodeType.of(id("insulated_wire")) {
+            nbt -> (nbt as? NbtCompound)?.let { 
+                InsulatedWirePartExt(Direction.byId(it.getByte("side").toInt()), DyeColor.byId(it.getByte("color").toInt()))
+            }
+        }
+    }
+    
+    override val wireType = RedstoneWireType.Colored(color)
+    
+    override fun getType() = TYPE
+
+    override fun getSide() = side
 
     private fun isCorrectBlock(state: BlockState) = state.block in RSWires.blocks.insulatedWires.values
 
     override fun getState(world: World, self: NetNode): Boolean {
-        val pos = self.data.pos
+        val pos = self.blockPos
         val state = world.getBlockState(pos)
         return isCorrectBlock(state) && state[WireProperties.POWERED]
     }
 
     override fun setState(world: World, self: NetNode, state: Boolean) {
-        val pos = self.data.pos
+        val pos = self.blockPos
         val blockState = world.getBlockState(pos)
         if (!isCorrectBlock(blockState)) return
         world.setBlockState(pos, blockState.with(WireProperties.POWERED, state))
     }
 
     override fun getInput(world: World, self: NetNode): Boolean {
-        val pos = self.data.pos
+        val pos = self.blockPos
         val state = world.getBlockState(pos)
 
         if (!isCorrectBlock(state)) return false
@@ -251,13 +274,20 @@ data class InsulatedWirePartExt(override val side: Direction, val color: DyeColo
         return RedstoneWireUtils.isReceivingPower(state, world, pos, false)
     }
 
-    override fun tryConnect(self: NetNode, world: ServerWorld, pos: BlockPos, nv: NodeView): Set<NetNode> {
-        return find(ConnectionDiscoverers.WIRE, RedstoneCarrierFilter, self, world, pos, nv)
+    override fun findConnections(self: NodeHolder<BlockNode>): MutableCollection<HalfLink> {
+        return WireConnectionDiscoverers.sidedWireFindConnections(this, self, RedstoneCarrierFilter)
     }
 
-    override fun onChanged(self: NetNode, world: ServerWorld, pos: BlockPos) {
-        RedstoneWireUtils.scheduleUpdate(world, pos)
-        WireUtils.updateClient(world, pos)
+    override fun canConnect(self: NodeHolder<BlockNode>, other: HalfLink): Boolean {
+        return WireConnectionDiscoverers.sidedWireCanConnect(this, self, other, RedstoneCarrierFilter)
+    }
+
+    override fun onConnectionsChanged(self: NodeHolder<BlockNode>) {
+        val world = self.blockWorld
+        if (world is ServerWorld) {
+            RedstoneWireUtils.scheduleUpdate(world, self.blockPos)
+            WireUtils.updateClient(world, self.blockPos)
+        }
     }
 
     override fun toTag(): NbtElement {
@@ -265,8 +295,24 @@ data class InsulatedWirePartExt(override val side: Direction, val color: DyeColo
     }
 }
 
-data class BundledCablePartExt(override val side: Direction, val color: DyeColor?, val inner: DyeColor) : PartExt, WirePartExtType, PartRedstoneCarrier {
-    override val type = RedstoneWireType.Bundled(color, inner)
+data class BundledCablePartExt(private val side: Direction, val color: DyeColor?, val inner: DyeColor) : SidedBlockNode, SidedWireBlockNode, PartRedstoneCarrier {
+    companion object {
+        val TYPE = BlockNodeType.of(id("bundled_cable")) {
+            nbt -> (nbt as? NbtCompound)?.let { 
+                BundledCablePartExt(
+                    Direction.byId(it.getByte("side").toInt()), 
+                    if (it.contains("color", NbtElement.BYTE_TYPE.toInt())) DyeColor.byId(it.getByte("color").toInt()) else null, 
+                    DyeColor.byId(it.getByte("inner").toInt())
+                ) 
+            } 
+        }
+    }
+    
+    override val wireType = RedstoneWireType.Bundled(color, inner)
+
+    override fun getType() = TYPE
+
+    override fun getSide() = side
 
     fun isCorrectBlock(state: BlockState) = state.block == RSWires.blocks.uncoloredBundledCable ||
         state.block in RSWires.blocks.coloredBundledCables.values
@@ -278,7 +324,7 @@ data class BundledCablePartExt(override val side: Direction, val color: DyeColor
     override fun setState(world: World, self: NetNode, state: Boolean) {}
 
     override fun getInput(world: World, self: NetNode): Boolean {
-        val pos = self.data.pos
+        val pos = self.blockPos
         val state = world.getBlockState(pos)
 
         if (!isCorrectBlock(state)) return false
@@ -286,13 +332,20 @@ data class BundledCablePartExt(override val side: Direction, val color: DyeColor
         return BundledCableUtils.getReceivedData(state, world, pos).toUInt() and (1u shl inner.id) != 0u
     }
 
-    override fun tryConnect(self: NetNode, world: ServerWorld, pos: BlockPos, nv: NodeView): Set<NetNode> {
-        return find(ConnectionDiscoverers.WIRE, RedstoneCarrierFilter, self, world, pos, nv)
+    override fun findConnections(self: NodeHolder<BlockNode>): MutableCollection<HalfLink> {
+        return WireConnectionDiscoverers.sidedWireFindConnections(this, self, RedstoneCarrierFilter)
     }
 
-    override fun onChanged(self: NetNode, world: ServerWorld, pos: BlockPos) {
-        RedstoneWireUtils.scheduleUpdate(world, pos)
-        WireUtils.updateClient(world, pos)
+    override fun canConnect(self: NodeHolder<BlockNode>, other: HalfLink): Boolean {
+        return WireConnectionDiscoverers.sidedWireCanConnect(this, self, other, RedstoneCarrierFilter)
+    }
+
+    override fun onConnectionsChanged(self: NodeHolder<BlockNode>) {
+        val world = self.blockWorld
+        if (world is ServerWorld) {
+            RedstoneWireUtils.scheduleUpdate(world, self.blockPos)
+            WireUtils.updateClient(world, self.blockPos)
+        }
     }
 
     override fun toTag(): NbtElement {
@@ -300,8 +353,8 @@ data class BundledCablePartExt(override val side: Direction, val color: DyeColor
     }
 }
 
-interface PartRedstoneCarrier : PartExt {
-    val type: RedstoneWireType
+interface PartRedstoneCarrier : BlockNode {
+    val wireType: RedstoneWireType
 
     fun getState(world: World, self: NetNode): Boolean
 
@@ -324,11 +377,11 @@ sealed class RedstoneWireType {
     }
 }
 
-object RedstoneCarrierFilter : ConnectionFilter {
-    override fun accepts(self: NetNode, other: NetNode): Boolean {
-        val d1 = self.data.ext as? PartRedstoneCarrier ?: return false
-        val d2 = other.data.ext as? PartRedstoneCarrier ?: return false
-        return d1.type.canConnect(d2.type)
+object RedstoneCarrierFilter : WireConnectionFilter {
+    override fun accepts(self: BlockNode, other: BlockNode): Boolean {
+        val d1 = self as? PartRedstoneCarrier ?: return false
+        val d2 = other as? PartRedstoneCarrier ?: return false
+        return d1.wireType.canConnect(d2.wireType)
     }
 }
 
@@ -338,30 +391,30 @@ object WireProperties {
 
 object RedstoneWireUtils {
 
-    var scheduled = mapOf<DimensionType, Set<UUID>>()
+    var scheduled = mapOf<DimensionType, Set<Long>>()
 
     fun scheduleUpdate(world: ServerWorld, pos: BlockPos) {
-        scheduled += world.dimension to scheduled[world.dimension].orEmpty() + world.getWireNetworkState().controller.getNetworksAt(pos).map { it.id }
+        scheduled += world.dimension to scheduled[world.dimension].orEmpty() + WIRE_NETWORK.getGraphWorld(world).getAllGraphsAt(pos).map { it.id }.toList()
     }
 
     fun flushUpdates(world: ServerWorld) {
-        val wireNetworkState = world.getWireNetworkState()
+        val wireNetworkState = WIRE_NETWORK.getGraphWorld(world)
         for (id in scheduled[world.dimension].orEmpty()) {
-            val net = wireNetworkState.controller.getNetwork(id)
+            val net = wireNetworkState.getGraph(id)
             if (net != null) updateState(world, net)
         }
         scheduled -= world.dimension
     }
 
-    fun updateState(world: World, network: Network) {
+    fun updateState(world: World, network: BlockGraph) {
         val isOn = try {
             RSWires.wiresGivePower = false
-            network.getNodes().any { (it.data.ext as PartRedstoneCarrier).getInput(world, it) }
+            network.nodes.asSequence().any { (it.node as PartRedstoneCarrier).getInput(world, it) }
         } finally {
             RSWires.wiresGivePower = true
         }
-        for (node in network.getNodes()) {
-            val ext = node.data.ext as PartRedstoneCarrier
+        for (node in network.nodes) {
+            val ext = node.node as PartRedstoneCarrier
             ext.setState(world, node, isOn)
         }
     }
