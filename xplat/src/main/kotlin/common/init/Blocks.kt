@@ -1,20 +1,19 @@
 package net.dblsaiko.rswires.common.init
 
 import net.dblsaiko.hctm.common.util.flatten
-import net.dblsaiko.hctm.fabric.init.BlockRegistryFabric
-import net.dblsaiko.rswires.MOD_ID
+import net.dblsaiko.rswires.RSWiresPlatform
 import net.dblsaiko.rswires.common.block.BundledCableBlock
 import net.dblsaiko.rswires.common.block.InsulatedWireBlock
 import net.dblsaiko.rswires.common.block.RedAlloyWireBlock
-import net.fabricmc.fabric.api.`object`.builder.v1.block.FabricBlockSettings
+import net.minecraft.block.AbstractBlock
 import net.minecraft.block.MapColor
 import net.minecraft.block.enums.Instrument
 import net.minecraft.util.DyeColor
 
 class Blocks {
-    private val reg = BlockRegistryFabric(MOD_ID)
+    private val reg = RSWiresPlatform.INSTANCE.blocks
 
-    private val wireSettings = FabricBlockSettings.create()
+    private val wireSettings = AbstractBlock.Settings.create()
         .mapColor(MapColor.RED)
         .noCollision()
         .strength(0.05f, 0.05f)
@@ -41,9 +40,5 @@ class Blocks {
 
     fun getBundledCable(color: DyeColor): BundledCableBlock {
         return this.coloredBundledCables.getValue(color)
-    }
-
-    fun register() {
-        this.reg.register()
     }
 }

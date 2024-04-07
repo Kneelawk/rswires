@@ -2,14 +2,13 @@ package net.dblsaiko.rswires.common.init
 
 import net.dblsaiko.hctm.common.block.BaseWireItem
 import net.dblsaiko.hctm.common.util.flatten
-import net.dblsaiko.hctm.fabric.init.ItemRegistryFabric
-import net.dblsaiko.rswires.MOD_ID
 import net.dblsaiko.rswires.RSWires
+import net.dblsaiko.rswires.RSWiresPlatform
 import net.minecraft.item.Item
 import net.minecraft.item.Item.Settings
 
 class Items(blocks: Blocks) {
-    private val reg = ItemRegistryFabric(MOD_ID)
+    private val reg = RSWiresPlatform.INSTANCE.items
 
     val redAlloyWire by this.reg.create("red_alloy_wire") { BaseWireItem(blocks.redAlloyWire, Settings()) }
     val insulatedWires by RSWires.blocks.insulatedWireObjects.mapValues { (color, block) ->
@@ -24,8 +23,4 @@ class Items(blocks: Blocks) {
 
     val redAlloyCompound by this.reg.create("red_alloy_compound") { Item(Settings()) }
     val redAlloyIngot by this.reg.create("red_alloy_ingot") { Item(Settings()) }
-
-    fun register() {
-        this.reg.register()
-    }
 }

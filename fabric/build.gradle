@@ -30,6 +30,11 @@ loom {
             sourceSet(project(":xplat").sourceSets.main)
         }
     }
+    runs {
+        client {
+            programArgs "--width", "1280", "--height", "720"
+        }
+    }
 }
 
 configurations {

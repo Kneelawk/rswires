@@ -38,6 +38,9 @@ dependencies {
 
     minecraft group: "com.mojang", name: "minecraft", version: minecraft_version
     mappings group: "net.fabricmc", name: "yarn", version: yarn_mappings, classifier: "v2"
+    modCompileOnly group: "net.fabricmc", name: "fabric-loader", version: fabric_loader_version
+
+    compileOnly "org.jetbrains.kotlin:kotlin-stdlib"
 
     // modImplementation group: 'net.dblsaiko', name: 'hctm-base', version: hctm_base_version
     optionalProject ':hctm-base', group: 'net.dblsaiko', name: 'hctm-base-xplat-intermediary', version: hctm_base_version

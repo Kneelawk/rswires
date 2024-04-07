@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "net.dblsaiko.rswires.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [ ],
+  "client": [
+    "ModelLoaderMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

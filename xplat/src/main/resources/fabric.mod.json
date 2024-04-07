@@ -15,9 +15,11 @@
   "icon": "assets/rswires/icon.png",
   "environment": "*",
   "entrypoints": {
-    "main": [{ "value": "net.dblsaiko.rswires.RSWires", "adapter": "kotlin" }],
-    "client": [{ "value": "net.dblsaiko.rswires.client.RSWiresClient", "adapter": "kotlin" }]
+    "main": [{ "value": "net.dblsaiko.rswires.fabric.RSWiresFabric", "adapter": "kotlin" }]
   },
+  "mixins": [
+    "rswires.mixins.json"
+  ],
   "depends": {
     "minecraft": "~1.20.4",
     "fabricloader": ">=0.4.0",

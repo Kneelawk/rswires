@@ -1,0 +1,21 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "MIT"
+
+[[mixins]]
+config = "rswires.mixins.json"
+
+[[mods]]
+modId = "rswires"
+version = "${version}"
+displayName = "RSWires"
+authors = "2xsaiko"
+description = "Improved redstone, or something."
+logoFile = "assets/rswires/icon.png"
+
+[[dependencies.rswires]]
+modId = "neoforge"
+type = "REQUIRED"
+versionRange = "[20.4.148-beta,)"
+ordering = "NONE"
+side = "BOTH"
