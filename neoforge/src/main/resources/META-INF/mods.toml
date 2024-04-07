@@ -11,7 +11,7 @@ version = "${version}"
 displayName = "RSWires"
 authors = "2xsaiko"
 description = "Improved redstone, or something."
-logoFile = "assets/rswires/icon.png"
+logoFile = "assets/rswires/banner.png"
 
 [[dependencies.rswires]]
 modId = "neoforge"
