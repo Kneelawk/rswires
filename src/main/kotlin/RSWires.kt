@@ -1,6 +1,8 @@
 package net.dblsaiko.rswires
 
 import net.dblsaiko.hctm.common.wire.WIRE_NETWORK
+import net.dblsaiko.rswires.common.block.BundledCablePartExt
+import net.dblsaiko.rswires.common.block.InsulatedWirePartExt
 import net.dblsaiko.rswires.common.block.RedAlloyWirePartExt
 import net.dblsaiko.rswires.common.block.RedstoneWireUtils
 import net.dblsaiko.rswires.common.init.BlockEntityTypes
@@ -34,6 +36,8 @@ object RSWires : ModInitializer {
         this.itemGroups.register()
 
         WIRE_NETWORK.addNodeTypes(RedAlloyWirePartExt.TYPE)
+        WIRE_NETWORK.addNodeTypes(InsulatedWirePartExt.TYPE)
+        WIRE_NETWORK.addNodeTypes(BundledCablePartExt.TYPE)
 
         ServerTickEvents.END_WORLD_TICK.register(ServerTickEvents.EndWorldTick {
             if (it is ServerWorld) {

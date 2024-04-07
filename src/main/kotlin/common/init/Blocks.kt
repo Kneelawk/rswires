@@ -1,7 +1,7 @@
 package net.dblsaiko.rswires.common.init
 
 import net.dblsaiko.hctm.common.util.flatten
-import net.dblsaiko.hctm.init.BlockRegistry
+import net.dblsaiko.hctm.fabric.init.BlockRegistryFabric
 import net.dblsaiko.rswires.MOD_ID
 import net.dblsaiko.rswires.common.block.BundledCableBlock
 import net.dblsaiko.rswires.common.block.InsulatedWireBlock
@@ -12,7 +12,7 @@ import net.minecraft.block.enums.Instrument
 import net.minecraft.util.DyeColor
 
 class Blocks {
-    private val reg = BlockRegistry(MOD_ID)
+    private val reg = BlockRegistryFabric(MOD_ID)
 
     private val wireSettings = FabricBlockSettings.create()
         .mapColor(MapColor.RED)
@@ -20,10 +20,15 @@ class Blocks {
         .strength(0.05f, 0.05f)
         .instrument(Instrument.BASEDRUM)
 
-    val redAlloyWireObject = this.reg.create("red_alloy_wire", RedAlloyWireBlock(this.wireSettings))
-    val insulatedWireObjects = DyeColor.values().associate { it to this.reg.create("${it.getName()}_insulated_wire", InsulatedWireBlock(this.wireSettings, it)) }
-    val uncoloredBundledCableObject = this.reg.create("bundled_cable", BundledCableBlock(this.wireSettings, null))
-    val coloredBundledCableObjects = DyeColor.values().associate { it to this.reg.create("${it.getName()}_bundled_cable", BundledCableBlock(this.wireSettings, it)) }
+    val redAlloyWireObject = this.reg.create("red_alloy_wire") { RedAlloyWireBlock(this.wireSettings) }
+    val insulatedWireObjects = DyeColor.entries.associateWith {
+        this.reg.create("${it.getName()}_insulated_wire") { InsulatedWireBlock(this.wireSettings, it) }
+    }
+    val uncoloredBundledCableObject =
+        this.reg.create("bundled_cable") { BundledCableBlock(this.wireSettings, null) }
+    val coloredBundledCableObjects = DyeColor.entries.associateWith {
+        this.reg.create("${it.getName()}_bundled_cable") { BundledCableBlock(this.wireSettings, it) }
+    }
 
     val redAlloyWire by this.redAlloyWireObject
     val insulatedWires by this.insulatedWireObjects.flatten()

@@ -23,7 +23,7 @@
     "fabricloader": ">=0.4.0",
     "fabric": "*",
     "fabric-language-kotlin": ">=1.4",
-    "hctm-base": "^3.8.0-"
+    "hctm_base": "^3.8.0-"
   },
   "suggests": {
     "retrocomputers": ">=4.0.0"

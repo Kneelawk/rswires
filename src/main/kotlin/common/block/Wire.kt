@@ -291,7 +291,10 @@ data class InsulatedWirePartExt(private val side: Direction, val color: DyeColor
     }
 
     override fun toTag(): NbtElement {
-        return NbtByte.of(side.id.toByte())
+        val nbt = NbtCompound()
+        nbt.putByte("side", side.id.toByte())
+        nbt.putByte("color", color.id.toByte())
+        return nbt
     }
 }
 
@@ -349,7 +352,11 @@ data class BundledCablePartExt(private val side: Direction, val color: DyeColor?
     }
 
     override fun toTag(): NbtElement {
-        return NbtByte.of(side.id.toByte() or (inner.id shl 4).toByte())
+        val nbt = NbtCompound()
+        nbt.putByte("side", side.id.toByte())
+        color?.let { nbt.putByte("color", it.id.toByte()) }
+        nbt.putByte("inner", inner.id.toByte())
+        return nbt
     }
 }
 

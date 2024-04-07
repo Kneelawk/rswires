@@ -45,8 +45,8 @@ dependencies {
     }
 
     // modImplementation group: 'net.dblsaiko', name: 'hctm-base', version: hctm_base_version
-    optionalProject ':hctm-base', group: 'net.dblsaiko', name: 'hctm-base', version: hctm_base_version
-    include group: 'net.dblsaiko', name: 'hctm-base', version: hctm_base_version
+    optionalProject ':hctm-base', group: 'net.dblsaiko', name: 'hctm-base-fabric', version: hctm_base_version
+    include group: 'net.dblsaiko', name: 'hctm-base-fabric', version: hctm_base_version
 
 //    modRuntimeOnly(group: 'net.dblsaiko.qcommon.cfg', name: 'cfg', version: cfg_version) {
 //        exclude group: 'net.fabricmc.fabric-api'

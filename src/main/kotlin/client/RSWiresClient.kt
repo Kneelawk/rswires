@@ -2,7 +2,8 @@ package net.dblsaiko.rswires.client
 
 import net.dblsaiko.hctm.client.render.model.CacheKey
 import net.dblsaiko.hctm.client.render.model.UnbakedWireModel
-import net.dblsaiko.hctm.client.render.model.WireModelParts
+import net.dblsaiko.hctm.fabric.client.render.model.FabricWireModelFactory
+import net.dblsaiko.hctm.fabric.client.render.model.FabricWireModelParts
 import net.dblsaiko.rswires.MOD_ID
 import net.dblsaiko.rswires.RSWires
 import net.fabricmc.api.ClientModInitializer
@@ -21,16 +22,17 @@ object RSWiresClient : ClientModInitializer {
             val r = RendererAccess.INSTANCE.renderer
 
             if (r != null) {
-                val modelStore = ConcurrentHashMap<CacheKey, WireModelParts>()
+                val modelStore = ConcurrentHashMap<CacheKey, FabricWireModelParts>()
+                val factory = FabricWireModelFactory(r, modelStore)
 
-                val redAlloyOffModel = UnbakedWireModel(r, Identifier(MOD_ID, "block/red_alloy_wire/off"), 0.125f, 0.125f, 32.0f, modelStore)
-                val redAlloyOnModel = UnbakedWireModel(r, Identifier(MOD_ID, "block/red_alloy_wire/on"), 0.125f, 0.125f, 32.0f, modelStore)
+                val redAlloyOffModel = UnbakedWireModel(factory, Identifier(MOD_ID, "block/red_alloy_wire/off"), 0.125f, 0.125f, 32.0f)
+                val redAlloyOnModel = UnbakedWireModel(factory, Identifier(MOD_ID, "block/red_alloy_wire/on"), 0.125f, 0.125f, 32.0f)
 
-                val insulatedWireOffModel = DyeColor.values().associate { it to UnbakedWireModel(r, Identifier(MOD_ID, "block/insulated_wire/${it.getName()}/off"), 0.25f, 0.1875f, 32.0f, modelStore) }
-                val insulatedWireOnModel = DyeColor.values().associate { it to UnbakedWireModel(r, Identifier(MOD_ID, "block/insulated_wire/${it.getName()}/on"), 0.25f, 0.1875f, 32.0f, modelStore) }
+                val insulatedWireOffModel = DyeColor.values().associate { it to UnbakedWireModel(factory, Identifier(MOD_ID, "block/insulated_wire/${it.getName()}/off"), 0.25f, 0.1875f, 32.0f) }
+                val insulatedWireOnModel = DyeColor.values().associate { it to UnbakedWireModel(factory, Identifier(MOD_ID, "block/insulated_wire/${it.getName()}/on"), 0.25f, 0.1875f, 32.0f) }
 
-                val colorBundledCableModel = DyeColor.values().associate { it to UnbakedWireModel(r, Identifier(MOD_ID, "block/bundled_cable/${it.getName()}"), 0.375f, 0.25f, 32.0f, modelStore) }
-                val plainBundledCableModel = UnbakedWireModel(r, Identifier(MOD_ID, "block/bundled_cable/none"), 0.375f, 0.25f, 32.0f, modelStore)
+                val colorBundledCableModel = DyeColor.values().associate { it to UnbakedWireModel(factory, Identifier(MOD_ID, "block/bundled_cable/${it.getName()}"), 0.375f, 0.25f, 32.0f) }
+                val plainBundledCableModel = UnbakedWireModel(factory, Identifier(MOD_ID, "block/bundled_cable/none"), 0.375f, 0.25f, 32.0f)
 
                 ModelVariantProvider { modelId, _ ->
                     val props = modelId.variant.split(",")
