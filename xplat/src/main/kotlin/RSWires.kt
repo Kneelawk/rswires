@@ -27,6 +27,7 @@ object RSWires {
 
     fun initialize() {
         // run static initializers
+        logger.info("Initializing RSWires...")
     }
     
     fun initializeWireNet() {
