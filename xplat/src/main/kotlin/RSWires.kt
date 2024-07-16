@@ -13,7 +13,7 @@ import org.apache.logging.log4j.LogManager
 
 const val MOD_ID = "rswires"
 
-fun id(path: String) = Identifier(MOD_ID, path)
+fun id(path: String) = Identifier.of(MOD_ID, path)
 
 object RSWires {
     internal var logger = LogManager.getLogger(MOD_ID)

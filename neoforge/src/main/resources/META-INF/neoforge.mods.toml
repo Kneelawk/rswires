@@ -16,6 +16,6 @@ logoFile = "assets/rswires/banner.png"
 [[dependencies.rswires]]
 modId = "neoforge"
 type = "REQUIRED"
-versionRange = "[20.4.148-beta,)"
+versionRange = "[21.0.95-beta,)"
 ordering = "NONE"
 side = "BOTH"

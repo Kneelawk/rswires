@@ -21,7 +21,7 @@
     "rswires.mixins.json"
   ],
   "depends": {
-    "minecraft": "~1.20.4",
+    "minecraft": "~1.21",
     "fabricloader": ">=0.4.0",
     "fabric": "*",
     "fabric-language-kotlin": ">=1.4",

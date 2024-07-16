@@ -48,7 +48,7 @@ configurations {
 repositories {
     maven { url 'https://maven.dblsaiko.net' }
     // maven { url 'https://maven.terraformersmc.com/releases/' }
-    maven { url 'https://kneelawk.com/maven' }
+    maven { url 'https://maven.kneelawk.com/releases/' }
     mavenLocal()
 }
 
@@ -63,7 +63,10 @@ dependencies {
     }
 
     minecraft group: "com.mojang", name: "minecraft", version: minecraft_version
-    mappings group: "net.fabricmc", name: "yarn", version: yarn_mappings, classifier: "v2"
+    mappings loom.layered {
+        mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
+        mappings "dev.architectury:yarn-mappings-patch-neoforge:${yarn_patch}"
+    }
     modImplementation group: "net.fabricmc", name: "fabric-loader", version: fabric_loader_version
 
     modImplementation group: "net.fabricmc.fabric-api", name: "fabric-api", version: fabric_version
@@ -118,7 +121,7 @@ remapJar.configure {
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
-    kotlinOptions.jvmTarget = '17'
+    kotlinOptions.jvmTarget = '21'
     kotlinOptions.freeCompilerArgs += '-Xjvm-default=all'
 }
 
@@ -127,12 +130,12 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
 // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
-    options.release = 17
+    options.release = 21
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 
     withSourcesJar()
 }

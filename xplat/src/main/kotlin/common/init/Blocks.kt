@@ -7,7 +7,7 @@ import net.dblsaiko.rswires.common.block.InsulatedWireBlock
 import net.dblsaiko.rswires.common.block.RedAlloyWireBlock
 import net.minecraft.block.AbstractBlock
 import net.minecraft.block.MapColor
-import net.minecraft.block.enums.Instrument
+import net.minecraft.block.enums.NoteBlockInstrument
 import net.minecraft.util.DyeColor
 
 class Blocks {
@@ -17,7 +17,7 @@ class Blocks {
         .mapColor(MapColor.RED)
         .noCollision()
         .strength(0.05f, 0.05f)
-        .instrument(Instrument.BASEDRUM)
+        .instrument(NoteBlockInstrument.BASEDRUM)
 
     val redAlloyWireObject = this.reg.create("red_alloy_wire") { RedAlloyWireBlock(this.wireSettings) }
     val insulatedWireObjects = DyeColor.entries.associateWith {

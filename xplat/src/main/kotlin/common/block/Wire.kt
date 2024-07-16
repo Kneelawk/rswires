@@ -9,6 +9,8 @@ import com.kneelawk.graphlib.api.util.HalfLink
 import com.kneelawk.graphlib.api.wire.SidedWireBlockNode
 import com.kneelawk.graphlib.api.wire.WireConnectionDiscoverers
 import com.kneelawk.graphlib.api.wire.WireConnectionFilter
+import com.mojang.serialization.Codec
+import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.dblsaiko.hctm.block.BlockBundledCableIo
 import net.dblsaiko.hctm.common.block.BaseWireBlock
 import net.dblsaiko.hctm.common.block.BaseWireBlockEntity
@@ -17,17 +19,14 @@ import net.dblsaiko.hctm.common.block.ConnectionType
 import net.dblsaiko.hctm.common.block.SingleBaseWireBlock
 import net.dblsaiko.hctm.common.block.WireUtils
 import net.dblsaiko.hctm.common.wire.NetNode
-import net.dblsaiko.hctm.common.wire.SimpleBaseWireDecoder
 import net.dblsaiko.hctm.common.wire.WIRE_NETWORK
+import net.dblsaiko.hctm.common.wire.simpleBaseWireCodec
 import net.dblsaiko.rswires.RSWires
 import net.dblsaiko.rswires.id
 import net.minecraft.block.AbstractBlock
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
-import net.minecraft.nbt.NbtByte
-import net.minecraft.nbt.NbtCompound
-import net.minecraft.nbt.NbtElement
 import net.minecraft.server.world.ServerWorld
 import net.minecraft.state.StateManager.Builder
 import net.minecraft.state.property.Properties
@@ -37,8 +36,12 @@ import net.minecraft.util.math.Direction
 import net.minecraft.world.BlockView
 import net.minecraft.world.World
 import net.minecraft.world.dimension.DimensionType
-import kotlin.experimental.or
+import java.util.Optional
+import kotlin.jvm.optionals.getOrNull
 import kotlin.streams.asSequence
+
+val DIRECTION_CODEC = Codec.BYTE.xmap({Direction.byId(it.toInt())}, {it.id.toByte()})
+val DYE_COLOR_CODEC = Codec.BYTE.xmap({DyeColor.byId(it.toInt())}, {it.id.toByte()})
 
 abstract class BaseRedstoneWireBlock(settings: AbstractBlock.Settings, height: Float) : SingleBaseWireBlock(settings, height) {
 
@@ -174,7 +177,7 @@ class BundledCableBlock(settings: AbstractBlock.Settings, val color: DyeColor?) 
 
 data class RedAlloyWirePartExt(private val side: Direction) : SidedBlockNode, SidedWireBlockNode, PartRedstoneCarrier {
     companion object {
-        val TYPE = BlockNodeType.of(id("red_alloy_wire"), SimpleBaseWireDecoder(::RedAlloyWirePartExt))
+        val TYPE = BlockNodeType.of(id("red_alloy_wire"), simpleBaseWireCodec(::RedAlloyWirePartExt, RedAlloyWirePartExt::side))
     }
     
     override val wireType = RedstoneWireType.RedAlloy
@@ -229,19 +232,17 @@ data class RedAlloyWirePartExt(private val side: Direction) : SidedBlockNode, Si
             WireUtils.updateClient(world, self.blockPos)
         }
     }
-
-    override fun toTag(): NbtElement {
-        return NbtByte.of(side.id.toByte())
-    }
 }
 
 data class InsulatedWirePartExt(private val side: Direction, val color: DyeColor) : SidedBlockNode, SidedWireBlockNode, PartRedstoneCarrier {
     companion object {
-        val TYPE = BlockNodeType.of(id("insulated_wire")) {
-            nbt -> (nbt as? NbtCompound)?.let { 
-                InsulatedWirePartExt(Direction.byId(it.getByte("side").toInt()), DyeColor.byId(it.getByte("color").toInt()))
-            }
+        val CODEC: Codec<InsulatedWirePartExt> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                DIRECTION_CODEC.fieldOf("side").forGetter(InsulatedWirePartExt::side),
+                DYE_COLOR_CODEC.fieldOf("color").forGetter(InsulatedWirePartExt::color)
+            ).apply(instance, ::InsulatedWirePartExt)
         }
+        val TYPE = BlockNodeType.of(id("insulated_wire"), CODEC)
     }
     
     override val wireType = RedstoneWireType.Colored(color)
@@ -289,26 +290,18 @@ data class InsulatedWirePartExt(private val side: Direction, val color: DyeColor
             WireUtils.updateClient(world, self.blockPos)
         }
     }
-
-    override fun toTag(): NbtElement {
-        val nbt = NbtCompound()
-        nbt.putByte("side", side.id.toByte())
-        nbt.putByte("color", color.id.toByte())
-        return nbt
-    }
 }
 
 data class BundledCablePartExt(private val side: Direction, val color: DyeColor?, val inner: DyeColor) : SidedBlockNode, SidedWireBlockNode, PartRedstoneCarrier {
     companion object {
-        val TYPE = BlockNodeType.of(id("bundled_cable")) {
-            nbt -> (nbt as? NbtCompound)?.let { 
-                BundledCablePartExt(
-                    Direction.byId(it.getByte("side").toInt()), 
-                    if (it.contains("color", NbtElement.BYTE_TYPE.toInt())) DyeColor.byId(it.getByte("color").toInt()) else null, 
-                    DyeColor.byId(it.getByte("inner").toInt())
-                ) 
-            } 
+        val CODEC: Codec<BundledCablePartExt> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                DIRECTION_CODEC.fieldOf("side").forGetter(BundledCablePartExt::side),
+                DYE_COLOR_CODEC.lenientOptionalFieldOf("color").forGetter { Optional.ofNullable(it.color) },
+                DYE_COLOR_CODEC.fieldOf("inner").forGetter(BundledCablePartExt::inner)
+            ).apply(instance) { side, color, inner -> BundledCablePartExt(side, color.getOrNull(), inner) }
         }
+        val TYPE = BlockNodeType.of(id("bundled_cable"), CODEC)
     }
     
     override val wireType = RedstoneWireType.Bundled(color, inner)
@@ -349,14 +342,6 @@ data class BundledCablePartExt(private val side: Direction, val color: DyeColor?
             RedstoneWireUtils.scheduleUpdate(world, self.blockPos)
             WireUtils.updateClient(world, self.blockPos)
         }
-    }
-
-    override fun toTag(): NbtElement {
-        val nbt = NbtCompound()
-        nbt.putByte("side", side.id.toByte())
-        color?.let { nbt.putByte("color", it.id.toByte()) }
-        nbt.putByte("inner", inner.id.toByte())
-        return nbt
     }
 }
 

@@ -13,7 +13,7 @@ import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent
 import net.neoforged.neoforge.common.NeoForge
-import net.neoforged.neoforge.event.TickEvent
+import net.neoforged.neoforge.event.tick.LevelTickEvent
 
 @Mod(MOD_ID)
 class RSWiresNeoForge(modBus: IEventBus) {
@@ -47,9 +47,9 @@ class RSWiresNeoForge(modBus: IEventBus) {
 
     object NeoForgeEvents {
         @SubscribeEvent
-        private fun onServerWorldTick(event: TickEvent.LevelTickEvent) {
+        private fun onServerWorldTick(event: LevelTickEvent.Post) {
             val world = event.level
-            if (event.phase == TickEvent.Phase.END && world is ServerWorld) {
+            if (world is ServerWorld) {
                 RedstoneWireUtils.flushUpdates(world)
             }
         }
