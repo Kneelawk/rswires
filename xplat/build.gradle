@@ -1,7 +1,6 @@
 plugins {
     id "java"
     id "org.jetbrains.kotlin.jvm"
-    id "architectury-plugin"
     id "dev.architectury.loom"
     id "org.jetbrains.gradle.plugin.idea-ext"
     id "maven-publish"
@@ -14,10 +13,6 @@ base {
 }
 
 apply from: 'https://dblsaiko.net/pub/gradle/autoversion.gradle'
-
-architectury {
-    common(project.enabled_platforms.split(','))
-}
 
 repositories {
     maven { url 'https://maven.dblsaiko.net' }

@@ -1,10 +1,8 @@
 plugins {
     id "java"
     id "org.jetbrains.kotlin.jvm"
-    id "architectury-plugin"
     id "dev.architectury.loom"
     id "org.jetbrains.gradle.plugin.idea-ext"
-    id "com.github.johnrengelman.shadow"
     id "maven-publish"
 }
 
@@ -18,11 +16,6 @@ base {
 
 apply from: 'https://dblsaiko.net/pub/gradle/autoversion.gradle'
 
-architectury {
-    platformSetupLoomIde()
-    neoForge()
-}
-
 loom {
     mods {
         named("main") {
@@ -34,14 +27,6 @@ loom {
             programArgs "--width", "1280", "--height", "720"
         }
     }
-}
-
-configurations {
-    common
-    shadowCommon
-    compileClasspath.extendsFrom(common)
-    runtimeClasspath.extendsFrom(common)
-//    developmentNeoForge.extendsFrom(common)
 }
 
 repositories {
@@ -74,8 +59,7 @@ dependencies {
     modCompileOnly group: "thedarkcolour", name: "kotlinforforge-neoforge", version: kotlin_for_forge_version
     modLocalRuntime group: "thedarkcolour", name: "kotlinforforge-neoforge", version: kotlin_for_forge_version
 
-    common(project(path: ":xplat", configuration: "namedElements")) { transitive false }
-    shadowCommon(project(path: ":xplat", configuration: "transformProductionNeoForge")) { transitive false }
+    compileOnly(project(path: ":xplat", configuration: "namedElements"))
 
     // modImplementation group: 'net.dblsaiko', name: 'hctm-base', version: hctm_base_version
     optionalProject ':hctm-base', group: 'net.dblsaiko', name: 'hctm-base-neoforge', version: hctm_base_version
@@ -101,6 +85,7 @@ dependencies {
 }
 
 processResources {
+    from project(":xplat").sourceSets.main.resources
     inputs.property 'version', project.version
 
     filesMatching("META-INF/neoforge.mods.toml") {
@@ -108,21 +93,8 @@ processResources {
     }
 }
 
-shadowJar.configure {
-    exclude "architectury.common.json"
-    exclude "fabric.mod.json"
-    exclude "*-refmap.json"
-    configurations = [project.configurations.shadowCommon]
-    archiveClassifier = "dev-shadow"
-}
-
-remapJar.configure {
-    dependsOn shadowJar
-    inputFile.convention(shadowJar.archiveFile)
-    injectAccessWidener = true
-}
-
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    source project(":xplat").sourceSets.main.kotlin
     kotlinOptions.jvmTarget = '21'
     kotlinOptions.freeCompilerArgs += '-Xjvm-default=all'
 }
@@ -131,6 +103,7 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
 // this fixes some edge cases with special characters not displaying correctly
 // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
 tasks.withType(JavaCompile).configureEach {
+    source project(":xplat").sourceSets.main.java
     options.encoding = 'UTF-8'
     options.release = 21
 }
@@ -149,9 +122,7 @@ jar {
 }
 
 sourcesJar.configure {
-    def xplatSources = project(":xplat").tasks.sourcesJar
-    dependsOn(xplatSources)
-    from(zipTree(xplatSources.archiveFile))
+    from(project(":xplat").sourceSets.main.allSource)
 }
 
 // configure the maven publication
