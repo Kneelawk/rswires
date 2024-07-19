@@ -29,16 +29,9 @@ object RSWiresClient {
         insulatedWires + bundledCables + Registries.BLOCK.getId(RSWires.blocks.redAlloyWire) + Registries.BLOCK.getId(RSWires.blocks.uncoloredBundledCable)
     }
     
-    private val stateList by lazy {
-        (RSWires.blocks.insulatedWires.values.asSequence().flatMap { it.stateManager.states.asSequence() } +
-                RSWires.blocks.coloredBundledCables.values.asSequence().flatMap { it.stateManager.states.asSequence() } +
-                RSWires.blocks.redAlloyWire.stateManager.states.asSequence() +
-                RSWires.blocks.uncoloredBundledCable.stateManager.states.asSequence()).toList()
-    }
-    
     @JvmStatic
-    fun getAllStates(): List<BlockState> {
-        return stateList
+    fun isManaged(id: Identifier): Boolean {
+        return id in allIds
     }
     
     @JvmStatic
